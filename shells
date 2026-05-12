@@ -1,4 +1,4 @@
--- === AUTO QTE v11 (Fixed Perfect Click Timing) ===
+-- === AUTO QTE v13 FIX ===
 
 pcall(function()
     if game:GetService("CoreGui"):FindFirstChild("AutoQTE_GUI") then
@@ -10,13 +10,9 @@ _G.StopQTE = true
 task.wait(0.2)
 _G.StopQTE = false
 
-print("[v11] Запуск...")
-
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VIM = game:GetService("VirtualInputManager")
 local player = game.Players.LocalPlayer
 local pgui = player.PlayerGui
@@ -28,17 +24,19 @@ local enabledAutoSell = false
 local function safeVIMClick()
     pcall(function()
         local vp = workspace.CurrentCamera.ViewportSize
-        local x = vp.X * 0.8
-        local y = vp.Y * 0.8
+        local x, y = vp.X * 0.8, vp.Y * 0.8
         VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
         task.wait(0.03)
         VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
     end)
 end
 
-local function isMenuOpen()
-    local ok, result = pcall(function() return GuiService.MenuIsOpen end)
-    return ok and result
+local function pressE()
+    pcall(function()
+        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.1)
+        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end)
 end
 
 local function normalizeAngle(a) return a % 360 end
@@ -65,7 +63,6 @@ mainFrame.Draggable = true
 mainFrame.Parent = gui
 
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
-
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.fromRGB(50, 50, 70)
 mainStroke.Thickness = 1.5
@@ -122,31 +119,19 @@ local function createToggle(name, yPos, callback)
 
     local state = false
     local ti = TweenInfo.new(0.2, Enum.EasingStyle.Quad)
-
     local function set(v)
         state = v
         if state then
-            TweenService:Create(circle, ti, {
-                Position = UDim2.new(1, -18, 0.5, -8),
-                BackgroundColor3 = Color3.fromRGB(80, 255, 160)
-            }):Play()
-            TweenService:Create(bg, ti, {
-                BackgroundColor3 = Color3.fromRGB(25, 70, 50)
-            }):Play()
+            TweenService:Create(circle, ti, {Position = UDim2.new(1, -18, 0.5, -8), BackgroundColor3 = Color3.fromRGB(80, 255, 160)}):Play()
+            TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(25, 70, 50)}):Play()
             label.TextColor3 = Color3.fromRGB(80, 255, 160)
         else
-            TweenService:Create(circle, ti, {
-                Position = UDim2.new(0, 2, 0.5, -8),
-                BackgroundColor3 = Color3.fromRGB(130, 130, 150)
-            }):Play()
-            TweenService:Create(bg, ti, {
-                BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-            }):Play()
+            TweenService:Create(circle, ti, {Position = UDim2.new(0, 2, 0.5, -8), BackgroundColor3 = Color3.fromRGB(130, 130, 150)}):Play()
+            TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(35, 35, 50)}):Play()
             label.TextColor3 = Color3.fromRGB(170, 170, 190)
         end
         callback(state)
     end
-
     btn.MouseButton1Click:Connect(function() set(not state) end)
     return set
 end
@@ -155,49 +140,26 @@ local setQTE   = createToggle("Auto QTE",   28, function(v) enabledQTE = v end)
 local setStart = createToggle("Auto Start", 56, function(v) enabledAutoStart = v end)
 local setSell  = createToggle("Auto Sell",  84, function(v) enabledAutoSell = v end)
 
-print("[v11] GUI готов")
-
--- === QTE ЛОГИКА — FIXED PERFECT CLICK ===
--- Strategi: track diff terkecil saat masuk zone bar.
--- Klik tepat saat diff mulai naik lagi (artinya line baru lewat titik tengah bar).
-local prevLineRot = nil
-local qteLineMoving = false
-
-local inBarZone   = false   -- apakah line saat ini dalam zone bar
-local minDiffInZone = 999   -- diff terkecil yang tercatat saat dalam zone
-local clicked     = false   -- sudah klik di round ini
+-- === QTE LOGIC ===
+local prevLineRot, qteLineMoving = nil, false
+local inBarZone, minDiffInZone, clicked = false, 999, false
 
 _G.QTEConnection = RunService.RenderStepped:Connect(function()
-    if not enabledQTE then
-        inBarZone = false
-        minDiffInZone = 999
-        clicked = false
-        return
-    end
-
+    if not enabledQTE then inBarZone=false; minDiffInZone=999; clicked=false; return end
     pcall(function()
         local qte = pgui:FindFirstChild("QTE")
-        if not qte then
-            inBarZone = false; minDiffInZone = 999; clicked = false
-            qteLineMoving = false; return
-        end
+        if not qte then inBarZone=false; minDiffInZone=999; clicked=false; qteLineMoving=false; return end
         local main = qte:FindFirstChild("Main")
-        if not main then qteLineMoving = false; return end
+        if not main then qteLineMoving=false; return end
         local line = main:FindFirstChild("Line")
         local bars = main:FindFirstChild("Bars")
-        if not line or not bars then qteLineMoving = false; return end
+        if not line or not bars then qteLineMoving=false; return end
 
         local lineRot = line.Rotation
-
-        -- Deteksi apakah line sedang bergerak
-        if prevLineRot ~= nil then
-            qteLineMoving = math.abs(lineRot - prevLineRot) > 0.05
-        end
+        if prevLineRot ~= nil then qteLineMoving = math.abs(lineRot - prevLineRot) > 0.05 end
         prevLineRot = lineRot
 
-        -- Cari bar target yang visible
-        local targetBar
-        local barSize = 15
+        local targetBar, barSize = nil, 15
         for _, bar in pairs(bars:GetChildren()) do
             if bar:IsA("ImageLabel") and bar.Visible then
                 targetBar = bar
@@ -205,69 +167,144 @@ _G.QTEConnection = RunService.RenderStepped:Connect(function()
                 break
             end
         end
-
-        if not targetBar then
-            inBarZone = false; minDiffInZone = 999; clicked = false; return
-        end
+        if not targetBar then inBarZone=false; minDiffInZone=999; clicked=false; return end
 
         local diff = angleDiff(lineRot, targetBar.Rotation)
-        local halfBar = barSize / 2
-
-        if diff <= halfBar then
-            -- Line ada di dalam zone bar
+        if diff <= barSize/2 then
             if not inBarZone then
-                -- Baru masuk zone
-                inBarZone = true
-                minDiffInZone = diff
-                clicked = false
+                inBarZone=true; minDiffInZone=diff; clicked=false
             else
-                -- Sudah dalam zone: update minimum diff
                 if diff < minDiffInZone then
                     minDiffInZone = diff
                 elseif not clicked and diff > minDiffInZone + 0.5 then
-                    -- Diff mulai naik → line baru lewat titik tengah bar → KLIK SEKARANG
-                    safeVIMClick()
-                    clicked = true
+                    safeVIMClick(); clicked=true
                 end
             end
         else
-            -- Keluar dari zone bar
-            if inBarZone and not clicked then
-                -- Sudah keluar tapi belum klik → klik sebagai fallback
-                safeVIMClick()
-            end
-            inBarZone = false
-            minDiffInZone = 999
-            clicked = false
+            if inBarZone and not clicked then safeVIMClick() end
+            inBarZone=false; minDiffInZone=999; clicked=false
         end
     end)
 end)
 
 -- === AUTO START ===
 spawn(function()
-    print("[v11] Auto Start запущен")
     while not _G.StopQTE do
-        if enabledAutoStart and not qteLineMoving then
-            safeVIMClick()
-        end
+        if enabledAutoStart and not qteLineMoving then safeVIMClick() end
         task.wait(0.5)
     end
 end)
 
--- === AUTO SELL ===
+-- === AUTO SELL v3 ===
+local MERCHANT_PATHS = {
+    "Map.Bay Island.NPCs.Merchant",
+    "Map.Crescent Shore.NPCs.Merchant",
+    "Map.Sea Stack Islands.NPCs.Merchant",
+    "Map.Caldera Cay.NPCs.Merchant",
+    "TravellingMerchant.MerchantModel",
+}
+
+local function getNearestMerchant()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil, math.huge end
+    local hrp = char.HumanoidRootPart
+    local best, bestDist = nil, math.huge
+    for _, path in ipairs(MERCHANT_PATHS) do
+        pcall(function()
+            local obj = workspace
+            for part in path:gmatch("[^%.]+") do
+                obj = obj:FindFirstChild(part)
+                if not obj then error("x") end
+            end
+            local root = obj.PrimaryPart or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
+            if root then
+                local dist = (root.Position - hrp.Position).Magnitude
+                if dist < bestDist then best=obj; bestDist=dist end
+            end
+        end)
+    end
+    return best, bestDist
+end
+
+local function teleportToMerchant(model)
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = model.PrimaryPart or model:FindFirstChildOfClass("Part") or model:FindFirstChildOfClass("MeshPart")
+    if root then
+        char.HumanoidRootPart.CFrame = CFrame.new(root.Position + Vector3.new(0, 3, 4))
+    end
+end
+
+-- Strip karakter spesial lalu cari keyword
+local function clickByText(keywords)
+    for _, v in ipairs(pgui:GetDescendants()) do
+        if v:IsA("TextButton") and v.Visible and v.Text ~= ""
+            and not v:IsDescendantOf(gui) then
+            local txt = v.Text:lower()
+                :gsub("|", "")
+                :gsub("%[.-%]", "")
+                :gsub("%d+%.", "")
+                :gsub("%s+", " ")
+            txt = txt:match("^%s*(.-)%s*$") or txt
+            for _, kw in ipairs(keywords) do
+                if txt:find(kw, 1, true) then
+                    print("[AutoSell] Klik:", v.Text)
+                    v:Activate()
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 spawn(function()
-    print("[v11] Auto Sell запущен")
+    print("[v13] Auto Sell запущен")
     while not _G.StopQTE do
         if enabledAutoSell then
             pcall(function()
-                local Event = ReplicatedStorage:FindFirstChild("ByteNetReliable")
-                if Event then
-                    Event:FireServer(buffer.fromstring("4"), nil)
+                local merchant, dist = getNearestMerchant()
+                if not merchant then
+                    print("[AutoSell] Merchant tidak ditemukan")
+                    return
                 end
+                print("[AutoSell] Jarak:", math.floor(dist))
+
+                if dist > 10 then
+                    print("[AutoSell] Teleport...")
+                    teleportToMerchant(merchant)
+                    task.wait(1)
+                end
+
+                print("[AutoSell] Buka dialog...")
+                pressE()
+                task.wait(1.5)
+
+                -- Klik opsi sell inventory
+                local ok1 = clickByText({"sell my inventory", "like to sell my", "inventory"})
+                if not ok1 then
+                    print("[AutoSell] Opsi sell tidak ditemukan, tutup dialog")
+                    pressE()
+                    return
+                end
+
+                task.wait(1)
+
+                -- Klik Yes konfirmasi
+                local ok2 = clickByText({"yes"})
+                if ok2 then
+                    print("[AutoSell] Sold!")
+                else
+                    print("[AutoSell] Tombol Yes tidak ditemukan")
+                end
+
+                task.wait(0.5)
+                pressE()
+                print("[AutoSell] Selesai!")
             end)
         end
-        task.wait(2)
+        task.wait(10)
     end
 end)
 
-print("[v11] Всё готово!")
+print("[v13] Всё готово!")
