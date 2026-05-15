@@ -1,17 +1,17 @@
---[[
-    Thanks for using my HBE script,
-    this script should work for almost any game, however some may use different hit detection methods.
-    If you have any questions, leave a comment or DM realrade0n on Discord.
-    *Note* If you want to add this to your GUI, watch the GUI section in my video on how to do so.
-]]
+-- === HBE + GUI ===
 
-getgenv().HBE = true -- HBE Variable, use this to control whether the hitboxes are active or not.
+getgenv().HBE = false
+getgenv().HBE_SIZE = 8
+
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 local function GetCharParent()
     local charParent
-    repeat wait() until LocalPlayer.Character
+    repeat task.wait() until LocalPlayer.Character
     for _, char in pairs(workspace:GetDescendants()) do
         if string.find(char.Name, LocalPlayer.Name) and char:FindFirstChild("Humanoid") then
             charParent = char.Parent
@@ -21,56 +21,277 @@ local function GetCharParent()
     return charParent
 end
 
-
--- pcall to avoid the script breaking on low level executors (e.g. Solara or any Xeno paste)
 pcall(function()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
     local old = mt.__index
     mt.__index = function(Self, Key)
         if tostring(Self) == "HumanoidRootPart" and tostring(Key) == "Size" then
-            return Vector3.new(2,2,1)
+            if getgenv().HBE then
+                local s = getgenv().HBE_SIZE
+                return Vector3.new(s, s, s)
+            end
         end
         return old(Self, Key)
     end
     setreadonly(mt, true)
 end)
 
-
 local CHAR_PARENT = GetCharParent()
-local HITBOX_SIZE = Vector3.new(8,8,8) -- Default size. You can let the user choose with a slider. e.g. HITBOX_SIZE = Vector3.new(Value, Value, Value)
-local HITBOX_COLOUR = Color3.fromRGB(235,213,213) -- Default colour (RGB)
+local HITBOX_COLOUR = Color3.fromRGB(235, 213, 213)
 
+-- === GUI ===
+local CoreGui = game:GetService("CoreGui")
+pcall(function()
+    if CoreGui:FindFirstChild("HBE_GUI") then
+        CoreGui:FindFirstChild("HBE_GUI"):Destroy()
+    end
+end)
 
+local gui = Instance.new("ScreenGui")
+gui.Name = "HBE_GUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = CoreGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 180, 0, 110)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(50, 50, 70)
+stroke.Thickness = 1.5
+stroke.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 0, 24)
+title.Position = UDim2.new(0, 0, 0, 2)
+title.BackgroundTransparency = 1
+title.Text = "🎯 HitBox Expander"
+title.TextColor3 = Color3.fromRGB(200, 200, 230)
+title.TextSize = 12
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+-- Close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 20, 0, 20)
+closeBtn.Position = UDim2.new(1, -24, 0, 4)
+closeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 11
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = frame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+closeBtn.MouseButton1Click:Connect(function()
+    getgenv().HBE = false
+    gui:Destroy()
+end)
+
+-- Toggle row
+local row = Instance.new("Frame")
+row.Size = UDim2.new(1, -20, 0, 26)
+row.Position = UDim2.new(0, 10, 0, 28)
+row.BackgroundTransparency = 1
+row.Parent = frame
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 80, 1, 0)
+label.BackgroundTransparency = 1
+label.Text = "Hitbox"
+label.TextColor3 = Color3.fromRGB(170, 170, 190)
+label.TextSize = 12
+label.Font = Enum.Font.Gotham
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.Parent = row
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(0, 40, 0, 20)
+bg.Position = UDim2.new(1, -40, 0.5, -10)
+bg.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+bg.BorderSizePixel = 0
+bg.Parent = row
+Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
+
+local circle = Instance.new("Frame")
+circle.Size = UDim2.new(0, 16, 0, 16)
+circle.Position = UDim2.new(0, 2, 0.5, -8)
+circle.BackgroundColor3 = Color3.fromRGB(130, 130, 150)
+circle.BorderSizePixel = 0
+circle.Parent = bg
+Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+toggleBtn.BackgroundTransparency = 1
+toggleBtn.Text = ""
+toggleBtn.Parent = bg
+
+local ti = TweenInfo.new(0.2, Enum.EasingStyle.Quad)
+local function setState(v)
+    getgenv().HBE = v
+    if v then
+        TweenService:Create(circle, ti, {Position = UDim2.new(1, -18, 0.5, -8), BackgroundColor3 = Color3.fromRGB(80, 255, 160)}):Play()
+        TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(25, 70, 50)}):Play()
+        label.TextColor3 = Color3.fromRGB(80, 255, 160)
+    else
+        TweenService:Create(circle, ti, {Position = UDim2.new(0, 2, 0.5, -8), BackgroundColor3 = Color3.fromRGB(130, 130, 150)}):Play()
+        TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(35, 35, 50)}):Play()
+        label.TextColor3 = Color3.fromRGB(170, 170, 190)
+    end
+end
+
+toggleBtn.MouseButton1Click:Connect(function() setState(not getgenv().HBE) end)
+
+-- Slider row
+local sliderRow = Instance.new("Frame")
+sliderRow.Size = UDim2.new(1, -20, 0, 36)
+sliderRow.Position = UDim2.new(0, 10, 0, 58)
+sliderRow.BackgroundTransparency = 1
+sliderRow.Parent = frame
+
+-- Size label
+local sizeLabel = Instance.new("TextLabel")
+sizeLabel.Size = UDim2.new(1, 0, 0, 14)
+sizeLabel.Position = UDim2.new(0, 0, 0, 0)
+sizeLabel.BackgroundTransparency = 1
+sizeLabel.Text = "Size: 8"
+sizeLabel.TextColor3 = Color3.fromRGB(130, 130, 150)
+sizeLabel.TextSize = 10
+sizeLabel.Font = Enum.Font.Gotham
+sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+sizeLabel.Parent = sliderRow
+
+-- Slider track
+local track = Instance.new("Frame")
+track.Size = UDim2.new(1, 0, 0, 6)
+track.Position = UDim2.new(0, 0, 0, 20)
+track.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+track.BorderSizePixel = 0
+track.Parent = sliderRow
+Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+
+-- Slider fill
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(0.13, 0, 1, 0) -- default 8/60 ≈ 0.13
+fill.BackgroundColor3 = Color3.fromRGB(80, 255, 160)
+fill.BorderSizePixel = 0
+fill.Parent = track
+Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
+-- Slider knob
+local knob = Instance.new("Frame")
+knob.Size = UDim2.new(0, 14, 0, 14)
+knob.AnchorPoint = Vector2.new(0.5, 0.5)
+knob.Position = UDim2.new(0.13, 0, 0.5, 0)
+knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+knob.BorderSizePixel = 0
+knob.Parent = track
+Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+-- Hotkey label
+local hotkeyLabel = Instance.new("TextLabel")
+hotkeyLabel.Size = UDim2.new(1, -20, 0, 14)
+hotkeyLabel.Position = UDim2.new(0, 10, 0, 94)
+hotkeyLabel.BackgroundTransparency = 1
+hotkeyLabel.Text = "Hotkey: K"
+hotkeyLabel.TextColor3 = Color3.fromRGB(60, 60, 80)
+hotkeyLabel.TextSize = 10
+hotkeyLabel.Font = Enum.Font.Gotham
+hotkeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+hotkeyLabel.Parent = frame
+
+-- Slider logic
+local MIN_SIZE, MAX_SIZE = 2, 60
+local dragging = false
+
+local function updateSlider(pct)
+    pct = math.clamp(pct, 0, 1)
+    local newSize = math.floor(MIN_SIZE + pct * (MAX_SIZE - MIN_SIZE))
+    getgenv().HBE_SIZE = newSize
+    sizeLabel.Text = "Size: " .. newSize
+    fill.Size = UDim2.new(pct, 0, 1, 0)
+    knob.Position = UDim2.new(pct, 0, 0.5, 0)
+end
+
+local function getPct(inputX)
+    local trackPos = track.AbsolutePosition.X
+    local trackWidth = track.AbsoluteSize.X
+    return (inputX - trackPos) / trackWidth
+end
+
+knob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+    end
+end)
+
+track.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        updateSlider(getPct(input.Position.X))
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateSlider(getPct(input.Position.X))
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Hotkey K
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        setState(not getgenv().HBE)
+    end
+end)
+
+-- === HITBOX LOGIC ===
 local function AssignHitboxes(player)
     if player == LocalPlayer then return end
-
-    local hitbox_connection;
-    hitbox_connection = game:GetService("RunService").RenderStepped:Connect(function()
-        local char = CHAR_PARENT:FindFirstChild(player.Name)
+    RunService.RenderStepped:Connect(function()
+        local char = CHAR_PARENT and CHAR_PARENT:FindFirstChild(player.Name)
         if getgenv().HBE then
-            if char and char:FindFirstChild("HumanoidRootPart") and (char.HumanoidRootPart.Size ~= HITBOX_SIZE or char.HumanoidRootPart.Color ~= HITBOX_COLOUR) then
-                char.HumanoidRootPart.Size = HITBOX_SIZE
-                char.HumanoidRootPart.Color = HITBOX_COLOUR
-                char.HumanoidRootPart.CanCollide = false
-                char.HumanoidRootPart.Transparency = 0.5
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local s = getgenv().HBE_SIZE
+                local hrp = char.HumanoidRootPart
+                hrp.Size = Vector3.new(s, s, s)
+                hrp.Color = HITBOX_COLOUR
+                hrp.CanCollide = false
+                hrp.Transparency = 0.5
             end
         else
-            hitbox_connection:Disconnect()
-            char.HumanoidRootPart.Size = Vector3.new(2,2,1)
-            char.HumanoidRootPart.Transparency = 1
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                char.HumanoidRootPart.Transparency = 1
+            end
         end
     end)
 end
-
 
 for _, player in ipairs(Players:GetPlayers()) do
     AssignHitboxes(player)
 end
 
-
 Players.PlayerAdded:Connect(function(player)
-    if getgenv().HBE then
-        AssignHitboxes(player)
-    end
+    AssignHitboxes(player)
 end)
+
+print("HBE loaded! K = toggle")
