@@ -40,7 +40,6 @@ end)
 local CHAR_PARENT = GetCharParent()
 local HITBOX_COLOUR = Color3.fromRGB(235, 213, 213)
 
--- === GUI ===
 local CoreGui = game:GetService("CoreGui")
 pcall(function()
     if CoreGui:FindFirstChild("HBE_GUI") then
@@ -69,7 +68,6 @@ stroke.Color = Color3.fromRGB(50, 50, 70)
 stroke.Thickness = 1.5
 stroke.Parent = frame
 
--- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -30, 0, 24)
 title.Position = UDim2.new(0, 0, 0, 2)
@@ -80,7 +78,6 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
--- Close
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 20, 0, 20)
 closeBtn.Position = UDim2.new(1, -24, 0, 4)
@@ -98,7 +95,6 @@ closeBtn.MouseButton1Click:Connect(function()
     gui:Destroy()
 end)
 
--- Toggle row
 local row = Instance.new("Frame")
 row.Size = UDim2.new(1, -20, 0, 26)
 row.Position = UDim2.new(0, 10, 0, 28)
@@ -153,14 +149,12 @@ end
 
 toggleBtn.MouseButton1Click:Connect(function() setState(not getgenv().HBE) end)
 
--- Slider row
 local sliderRow = Instance.new("Frame")
 sliderRow.Size = UDim2.new(1, -20, 0, 36)
 sliderRow.Position = UDim2.new(0, 10, 0, 58)
 sliderRow.BackgroundTransparency = 1
 sliderRow.Parent = frame
 
--- Size label
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, 0, 0, 14)
 sizeLabel.Position = UDim2.new(0, 0, 0, 0)
@@ -172,7 +166,6 @@ sizeLabel.Font = Enum.Font.Gotham
 sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
 sizeLabel.Parent = sliderRow
 
--- Slider track
 local track = Instance.new("Frame")
 track.Size = UDim2.new(1, 0, 0, 6)
 track.Position = UDim2.new(0, 0, 0, 20)
@@ -181,15 +174,13 @@ track.BorderSizePixel = 0
 track.Parent = sliderRow
 Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
 
--- Slider fill
 local fill = Instance.new("Frame")
-fill.Size = UDim2.new(0.13, 0, 1, 0) -- default 8/60 ≈ 0.13
+fill.Size = UDim2.new(0.13, 0, 1, 0)
 fill.BackgroundColor3 = Color3.fromRGB(80, 255, 160)
 fill.BorderSizePixel = 0
 fill.Parent = track
 Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
--- Slider knob
 local knob = Instance.new("Frame")
 knob.Size = UDim2.new(0, 14, 0, 14)
 knob.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -199,19 +190,17 @@ knob.BorderSizePixel = 0
 knob.Parent = track
 Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
--- Hotkey label
 local hotkeyLabel = Instance.new("TextLabel")
 hotkeyLabel.Size = UDim2.new(1, -20, 0, 14)
 hotkeyLabel.Position = UDim2.new(0, 10, 0, 94)
 hotkeyLabel.BackgroundTransparency = 1
-hotkeyLabel.Text = "Hotkey: K"
+hotkeyLabel.Text = "Hotkey: G"
 hotkeyLabel.TextColor3 = Color3.fromRGB(60, 60, 80)
 hotkeyLabel.TextSize = 10
 hotkeyLabel.Font = Enum.Font.Gotham
 hotkeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 hotkeyLabel.Parent = frame
 
--- Slider logic
 local MIN_SIZE, MAX_SIZE = 2, 60
 local dragging = false
 
@@ -225,9 +214,7 @@ local function updateSlider(pct)
 end
 
 local function getPct(inputX)
-    local trackPos = track.AbsolutePosition.X
-    local trackWidth = track.AbsoluteSize.X
-    return (inputX - trackPos) / trackWidth
+    return (inputX - track.AbsolutePosition.X) / track.AbsoluteSize.X
 end
 
 knob.InputBegan:Connect(function(input)
@@ -255,10 +242,9 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Hotkey K
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.K then
+    if input.KeyCode == Enum.KeyCode.G then
         setState(not getgenv().HBE)
     end
 end)
@@ -294,4 +280,4 @@ Players.PlayerAdded:Connect(function(player)
     AssignHitboxes(player)
 end)
 
-print("HBE loaded! K = toggle")
+print("HBE loaded! G = toggle")
