@@ -129,10 +129,8 @@ mini2.Visible = false
 speeds = 1
 
 local speaker = game:GetService("Players").LocalPlayer
-
 local chr = game.Players.LocalPlayer.Character
 local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-
 nowe = false
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -144,11 +142,10 @@ Duration = 5;
 Frame.Active = true
 Frame.Draggable = true
 
-onof.MouseButton1Down:connect(function()
-
+-- Fungsi fly dipisah biar bisa dipanggil dari hotkey
+local function toggleFly()
     if nowe == true then
         nowe = false
-
         speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
         speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
         speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
@@ -167,7 +164,6 @@ onof.MouseButton1Down:connect(function()
         speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
     else
         nowe = true
-
         for i = 1, speeds do
             spawn(function()
                 local hb = game:GetService("RunService").Heartbeat
@@ -208,13 +204,10 @@ onof.MouseButton1Down:connect(function()
     if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
         local plr = game.Players.LocalPlayer
         local torso = plr.Character.Torso
-        local flying = true
-        local deb = true
         local ctrl = {f = 0, b = 0, l = 0, r = 0}
         local lastctrl = {f = 0, b = 0, l = 0, r = 0}
         local maxspeed = 50
         local speed = 0
-
         local bg = Instance.new("BodyGyro", torso)
         bg.P = 9e4
         bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -255,13 +248,10 @@ onof.MouseButton1Down:connect(function()
     else
         local plr = game.Players.LocalPlayer
         local UpperTorso = plr.Character.UpperTorso
-        local flying = true
-        local deb = true
         local ctrl = {f = 0, b = 0, l = 0, r = 0}
         local lastctrl = {f = 0, b = 0, l = 0, r = 0}
         local maxspeed = 50
         local speed = 0
-
         local bg = Instance.new("BodyGyro", UpperTorso)
         bg.P = 9e4
         bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -300,10 +290,11 @@ onof.MouseButton1Down:connect(function()
         game.Players.LocalPlayer.Character.Animate.Disabled = false
         tpwalking = false
     end
-end)
+end
+
+onof.MouseButton1Down:connect(toggleFly)
 
 local tis
-
 up.MouseButton1Down:connect(function()
     tis = up.MouseEnter:connect(function()
         while tis do
@@ -312,16 +303,11 @@ up.MouseButton1Down:connect(function()
         end
     end)
 end)
-
 up.MouseLeave:connect(function()
-    if tis then
-        tis:Disconnect()
-        tis = nil
-    end
+    if tis then tis:Disconnect(); tis = nil end
 end)
 
 local dis
-
 down.MouseButton1Down:connect(function()
     dis = down.MouseEnter:connect(function()
         while dis do
@@ -330,12 +316,8 @@ down.MouseButton1Down:connect(function()
         end
     end)
 end)
-
 down.MouseLeave:connect(function()
-    if dis then
-        dis:Disconnect()
-        dis = nil
-    end
+    if dis then dis:Disconnect(); dis = nil end
 end)
 
 game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
@@ -422,10 +404,10 @@ mini2.MouseButton1Click:Connect(function()
     closebutton.Position = UDim2.new(0, 0, -1, 27)
 end)
 
--- Hotkey G untuk toggle fly
+-- Hotkey G
 game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.G then
-        onof:Activate()
+        toggleFly()
     end
 end)
