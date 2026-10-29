@@ -304,6 +304,30 @@ TabMisc:CreateButton({
 })
 
 TabMisc:CreateButton({
+    Name = "FULL BRIGHT",
+    Callback = function()
+        local Light = game:GetService("Lighting")
+
+function dofullbright()
+Light.Ambient = Color3.new(1, 1, 1)
+Light.ColorShift_Bottom = Color3.new(1, 1, 1)
+Light.ColorShift_Top = Color3.new(1, 1, 1)
+end
+
+dofullbright()
+
+Light.LightingChanged:Connect(dofullbright)
+    end,
+})
+
+TabMisc:CreateButton({
+    Name = "HITBOX",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/prayandrailham-oss/script-roblok/refs/heads/main/hitbox"))()
+    end,
+})
+
+TabMisc:CreateButton({
     Name = "BRING PART",
     Callback = function()
         loadstring(game:HttpGet("https://gist.githubusercontent.com/tarz2642008-ship-it/ed8e924b00a9a2b87b57c722498cad9c/raw/f43d555c085bc86a24da8f081b7db4103efc16d9/RingPart"))()
