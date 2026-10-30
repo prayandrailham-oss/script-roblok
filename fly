@@ -132,6 +132,11 @@ local speaker = game:GetService("Players").LocalPlayer
 local chr = game.Players.LocalPlayer.Character
 local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 nowe = false
+tpwalking = false
+
+-- STATE UNTUK CLEANUP
+local alive = true
+local connections = {}
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "FLY GUI V3";
@@ -142,8 +147,27 @@ Duration = 5;
 Frame.Active = true
 Frame.Draggable = true
 
+-- Fungsi tpwalk dipisah biar nggak ngulang kode
+local function startTpWalk()
+    for i = 1, speeds do
+        spawn(function()
+            local hb = game:GetService("RunService").Heartbeat
+            tpwalking = true
+            local chr = game.Players.LocalPlayer.Character
+            local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+            while alive and tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                if hum.MoveDirection.Magnitude > 0 then
+                    chr:TranslateBy(hum.MoveDirection)
+                end
+            end
+        end)
+    end
+end
+
 -- Fungsi fly dipisah biar bisa dipanggil dari hotkey
 local function toggleFly()
+    if not alive then return end
+
     if nowe == true then
         nowe = false
         speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
@@ -164,19 +188,7 @@ local function toggleFly()
         speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
     else
         nowe = true
-        for i = 1, speeds do
-            spawn(function()
-                local hb = game:GetService("RunService").Heartbeat
-                tpwalking = true
-                local chr = game.Players.LocalPlayer.Character
-                local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                    if hum.MoveDirection.Magnitude > 0 then
-                        chr:TranslateBy(hum.MoveDirection)
-                    end
-                end
-            end)
-        end
+        startTpWalk()
         game.Players.LocalPlayer.Character.Animate.Disabled = true
         local Char = game.Players.LocalPlayer.Character
         local Hum = Char:FindFirstChildOfClass("Humanoid") or Char:FindFirstChildOfClass("AnimationController")
@@ -218,7 +230,7 @@ local function toggleFly()
         if nowe == true then
             plr.Character.Humanoid.PlatformStand = true
         end
-        while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+        while alive and (nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0) do
             game:GetService("RunService").RenderStepped:Wait()
             if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
                 speed = speed+.5+(speed/maxspeed)
@@ -242,8 +254,10 @@ local function toggleFly()
         speed = 0
         bg:Destroy()
         bv:Destroy()
-        plr.Character.Humanoid.PlatformStand = false
-        game.Players.LocalPlayer.Character.Animate.Disabled = false
+        pcall(function()
+            plr.Character.Humanoid.PlatformStand = false
+            plr.Character.Animate.Disabled = false
+        end)
         tpwalking = false
     else
         local plr = game.Players.LocalPlayer
@@ -262,7 +276,7 @@ local function toggleFly()
         if nowe == true then
             plr.Character.Humanoid.PlatformStand = true
         end
-        while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+        while alive and (nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0) do
             wait()
             if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
                 speed = speed+.5+(speed/maxspeed)
@@ -286,99 +300,74 @@ local function toggleFly()
         speed = 0
         bg:Destroy()
         bv:Destroy()
-        plr.Character.Humanoid.PlatformStand = false
-        game.Players.LocalPlayer.Character.Animate.Disabled = false
+        pcall(function()
+            plr.Character.Humanoid.PlatformStand = false
+            plr.Character.Animate.Disabled = false
+        end)
         tpwalking = false
     end
 end
 
-onof.MouseButton1Down:connect(toggleFly)
+table.insert(connections, onof.MouseButton1Down:Connect(toggleFly))
 
 local tis
-up.MouseButton1Down:connect(function()
-    tis = up.MouseEnter:connect(function()
-        while tis do
+table.insert(connections, up.MouseButton1Down:Connect(function()
+    tis = up.MouseEnter:Connect(function()
+        while alive and tis do
             wait()
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,1,0)
         end
     end)
-end)
-up.MouseLeave:connect(function()
+end))
+table.insert(connections, up.MouseLeave:Connect(function()
     if tis then tis:Disconnect(); tis = nil end
-end)
+end))
 
 local dis
-down.MouseButton1Down:connect(function()
-    dis = down.MouseEnter:connect(function()
-        while dis do
+table.insert(connections, down.MouseButton1Down:Connect(function()
+    dis = down.MouseEnter:Connect(function()
+        while alive and dis do
             wait()
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,-1,0)
         end
     end)
-end)
-down.MouseLeave:connect(function()
+end))
+table.insert(connections, down.MouseLeave:Connect(function()
     if dis then dis:Disconnect(); dis = nil end
-end)
+end))
 
-game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+table.insert(connections, game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
     wait(0.7)
+    if not alive then return end
     game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
     game.Players.LocalPlayer.Character.Animate.Disabled = false
-end)
+end))
 
-plus.MouseButton1Down:connect(function()
+table.insert(connections, plus.MouseButton1Down:Connect(function()
     speeds = speeds + 1
     speed.Text = speeds
     if nowe == true then
         tpwalking = false
-        for i = 1, speeds do
-            spawn(function()
-                local hb = game:GetService("RunService").Heartbeat
-                tpwalking = true
-                local chr = game.Players.LocalPlayer.Character
-                local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                    if hum.MoveDirection.Magnitude > 0 then
-                        chr:TranslateBy(hum.MoveDirection)
-                    end
-                end
-            end)
-        end
+        startTpWalk()
     end
-end)
+end))
 
-mine.MouseButton1Down:connect(function()
+table.insert(connections, mine.MouseButton1Down:Connect(function()
     if speeds == 1 then
         speed.Text = 'cannot be less than 1'
         wait(1)
-        speed.Text = speeds
+        if alive then speed.Text = speeds end
     else
         speeds = speeds - 1
         speed.Text = speeds
         if nowe == true then
             tpwalking = false
-            for i = 1, speeds do
-                spawn(function()
-                    local hb = game:GetService("RunService").Heartbeat
-                    tpwalking = true
-                    local chr = game.Players.LocalPlayer.Character
-                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                        if hum.MoveDirection.Magnitude > 0 then
-                            chr:TranslateBy(hum.MoveDirection)
-                        end
-                    end
-                end)
-            end
+            startTpWalk()
         end
     end
-end)
+end))
 
-closebutton.MouseButton1Click:Connect(function()
-    main:Destroy()
-end)
-
-mini.MouseButton1Click:Connect(function()
+table.insert(connections, mini.MouseButton1Click:Connect(function()
     up.Visible = false
     down.Visible = false
     onof.Visible = false
@@ -389,9 +378,9 @@ mini.MouseButton1Click:Connect(function()
     mini2.Visible = true
     main.Frame.BackgroundTransparency = 1
     closebutton.Position = UDim2.new(0, 0, -1, 57)
-end)
+end))
 
-mini2.MouseButton1Click:Connect(function()
+table.insert(connections, mini2.MouseButton1Click:Connect(function()
     up.Visible = true
     down.Visible = true
     onof.Visible = true
@@ -402,12 +391,62 @@ mini2.MouseButton1Click:Connect(function()
     mini2.Visible = false
     main.Frame.BackgroundTransparency = 0
     closebutton.Position = UDim2.new(0, 0, -1, 27)
-end)
+end))
 
 -- Hotkey G
-game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+table.insert(connections, game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not alive then return end
     if input.KeyCode == Enum.KeyCode.G then
         toggleFly()
     end
-end)
+end))
+
+-- CLEANUP: dipanggil pas tombol X ditekan
+local function cleanup()
+    -- matiin semua flag biar semua loop berhenti
+    alive = false
+    nowe = false
+    tpwalking = false
+
+    -- putusin semua koneksi (hotkey G, CharacterAdded, tombol-tombol, dll)
+    for _, c in ipairs(connections) do
+        pcall(function() c:Disconnect() end)
+    end
+    connections = {}
+    if tis then pcall(function() tis:Disconnect() end); tis = nil end
+    if dis then pcall(function() dis:Disconnect() end); dis = nil end
+
+    -- balikin karakter ke kondisi normal
+    local char = speaker.Character
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+            pcall(function() humanoid:SetStateEnabled(state, true) end)
+        end
+        humanoid.PlatformStand = false
+        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+            pcall(function() track:AdjustSpeed(1) end)
+        end
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+    if char then
+        local animate = char:FindFirstChild("Animate")
+        if animate then animate.Disabled = false end
+        -- bersihin sisa BodyGyro / BodyVelocity
+        for _, name in ipairs({"Torso", "UpperTorso"}) do
+            local part = char:FindFirstChild(name)
+            if part then
+                for _, obj in ipairs(part:GetChildren()) do
+                    if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
+                        obj:Destroy()
+                    end
+                end
+            end
+        end
+    end
+
+    -- terakhir, hapus GUI-nya
+    main:Destroy()
+end
+
+closebutton.MouseButton1Click:Connect(cleanup)
