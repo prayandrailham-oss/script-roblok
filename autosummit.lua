@@ -328,6 +328,13 @@ TabMisc:CreateButton({
 })
 
 TabMisc:CreateButton({
+    Name = "ESP PLAYER",
+    Callback = function()
+        loadstring(game:HttpGet("https://sneekysscripts.uk/Scripts/Universal_ESP/main.luau"))();
+    end,
+})
+
+TabMisc:CreateButton({
     Name = "BRING PART",
     Callback = function()
         loadstring(game:HttpGet("https://gist.githubusercontent.com/tarz2642008-ship-it/ed8e924b00a9a2b87b57c722498cad9c/raw/f43d555c085bc86a24da8f081b7db4103efc16d9/RingPart"))()
