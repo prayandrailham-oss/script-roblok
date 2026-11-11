@@ -330,7 +330,7 @@ TabMisc:CreateButton({
 TabMisc:CreateButton({
     Name = "ESP PLAYER",
     Callback = function()
-        loadstring(game:HttpGet("https://sneekysscripts.uk/Scripts/Universal_ESP/main.luau"))();
+        loadstring(game:HttpGet("https://sneekysscripts.uk/Scripts/Universal_ESP/main.luau"))()
     end,
 })
 
